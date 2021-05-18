@@ -1,0 +1,23 @@
+{
+    init: function(elevators, floors) {
+        
+        elevators.forEach(function(elevator){
+            
+            //elevator_idle go to bottom
+            elevator.on("idle", function(){
+                elevator.goToFloor(0);
+            })
+            
+            //floor_button_pressed
+            elevator.on("floor_button_pressed", function(floorNum){
+                elevator.goToFloor(floorNum);
+            })
+  
+        })
+
+        
+    },
+    update: function(dt, elevators, floors) {
+        // We normally don't need to do anything here
+    }
+}
