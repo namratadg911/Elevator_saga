@@ -1,3 +1,3 @@
 # Elevator_saga
 
-Elevator game with different challenges at each stage
+The solution works for challenges 1-10. 
