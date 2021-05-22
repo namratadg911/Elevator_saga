@@ -1,0 +1,121 @@
+{
+    init: function(elevators, floors) {
+
+        elevators.forEach(function(elevator) {
+            elevator.on("idle", function(index) {
+
+                //new_array of the people waiting
+                let pressedFloors = floors.filter((floor) => (floor.buttonStates.up || floor.buttonStates.down));
+
+                // Check if waiting list is null or not...and go to the floor accordingly
+                let new_destination = pressedFloors.length ? pressedFloors[0].floorNum() : 0
+
+                elevator.goToFloor(new_destination);
+
+            });
+
+            //for floor_button_pressed
+            elevator.on("floor_button_pressed", function(floorNum) {
+                if(elevator.loadFactor() <= 0.8){
+                    //console.log("inside loadFactor 0.8 ############################################")
+                    elevator.goToFloor(floorNum);
+                } else {
+                    // console.log("outside timeout ############################################", elevator.loadFactor())
+                    elevator.goToFloor(floorNum, true);
+                }
+
+            });
+
+            //passing_floor
+            elevator.on("passing_floor", function(floorNum, direction) {
+
+                // check the direction where the person wants to go and loadfactor if it can take extra passengers
+                if (floors[floorNum].buttonStates[direction] && elevator.loadFactor() <= 0.8) {
+                    elevator.goToFloor(floorNum, true);
+                }
+
+                // Stop at the floor first if it is in the queue
+                if (elevator.destinationQueue.includes(floorNum)  ) { 
+                    elevator.destinationQueue.splice(elevator.destinationQueue.indexOf(floorNum), 1);
+                    elevator.goToFloor(floorNum,true); 
+                }
+            });
+            
+            //stopped_at_floor
+            elevator.on("stopped_at_floor", function(floorNum, direction) {
+
+                if (floors[floorNum].buttonStates[direction] && elevator.loadFactor() <= 0.8) {
+                    elevator.goToFloor(floorNum, true);
+                }
+            })
+
+
+        });  
+
+        floors.forEach(function(floor){
+
+            elevators.forEach(function(elevator) {
+
+                floor.on("up_button_pressed", function(){
+                    //console.log("elevator is idle 1")
+                    elevator.on("idle", function(index) {
+                        //  console.log("elevator is idle 2")
+                        //find closest elevator and goto that floor
+                        if( !elevator.destinationQueue.includes(floor.floorNum()) && floor.buttonStates["up"] == "activated") {
+                            
+                            floor.elevatorComingUp = true                         
+                            closestElevator(floor).goToFloor(floor.floorNum())
+                            floor.buttonStates["up"] = "";
+                            
+                        }
+                    })
+
+                    floor.on("down_button_pressed", function(){
+                        //find closest elevator and goto that floor
+                        if( !elevator.destinationQueue.includes(floor.floorNum()) && floor.buttonStates["down"] == "activated" ) {
+                            floor.buttonStates["down"] = "";
+                            closestElevator(floor).goToFloor(floor.floorNum())
+                        }
+                    })
+                })
+            })
+        })
+        function closestElevator(floor){
+
+            //[{ele: , distance:},{ele: , distance:}]
+            let distArr =[]
+
+            elevators.forEach(function(elevator){
+
+                let dist = {}
+                if (elevator.destinationQueue.length == 0){
+                    dist.ele = elevator;
+                    dist.distance = -1;
+                    distArr.push(dist);              
+
+                }
+                else{
+                    dist.ele = elevator;
+                    dist.distance = Math.abs(floor.floorNum() - elevator.currentFloor());
+                    distArr.push(dist);
+                }
+
+            })
+            //sort 
+            distArr.sort(function(first,second){
+                return first.distance - second.distance;
+            })
+
+            //return the closest elevator
+            return distArr[0].ele;
+            //console.log(distArr)
+
+
+        }
+
+
+    },
+        update: function(dt, elevators, floors) {
+            // We normally don't need to do anything here
+        }
+}
